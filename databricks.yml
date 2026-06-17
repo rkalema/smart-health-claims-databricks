@@ -1,1 +1,127 @@
+# Databricks bundle configuration for Health Claims Analytics
+# This file configures the deployment of resources to Databricks
 
+bundle:
+  name: smart-health-claims-analytics
+
+# Variables for reusable values
+variables:
+  catalog_name:
+    default: health_claims_dev
+  schema_bronze:
+    default: bronze
+  schema_silver:
+    default: silver
+  schema_gold:
+    default: gold
+
+# Target environments
+targets:
+  dev:
+    workspace:
+      host: https://dbc-6376e7a6-40c8.cloud.databricks.com
+    default: true
+    
+  prod:
+    workspace:
+      host: https://dbc-6376e7a6-40c8.cloud.databricks.com
+    variables:
+      catalog_name: health_claims_prod
+
+# Resources to deploy
+resources:
+  # Delta Live Tables Pipelines
+  pipelines:
+    health_claims_bronze:
+      name: "Health Claims - Bronze Layer Ingestion"
+      catalog: ${var.catalog_name}
+      target: ${var.schema_bronze}
+      storage: /pipelines/health_claims/bronze
+      libraries:
+        - notebook:
+            path: /src/bronze/ingest_claims_data
+      
+    health_claims_silver:
+      name: "Health Claims - Silver Layer Transformation"
+      catalog: ${var.catalog_name}
+      target: ${var.schema_silver}
+      storage: /pipelines/health_claims/silver
+      libraries:
+        - notebook:
+            path: /src/silver/clean_and_mask_phi
+      
+    health_claims_gold:
+      name: "Health Claims - Gold Layer Analytics"
+      catalog: ${var.catalog_name}
+      target: ${var.schema_gold}
+      storage: /pipelines/health_claims/gold
+      libraries:
+        - notebook:
+            path: /src/gold/create_analytics_tables
+
+  # SQL Warehouses
+  warehouses:
+    analytics_warehouse:
+      name: "Health Claims Analytics Warehouse"
+      cluster_size: "2X-Small"
+      auto_stop_mins: 120
+      enable_photon: true
+      min_num_clusters: 1
+      max_num_clusters: 2
+
+  # Dashboards
+  dashboards:
+    health_claims_dashboard:
+      name: "Complete Health Claims Analytics Solution"
+      warehouse_id: ${resources.warehouses.analytics_warehouse.id}
+      parent: folders/shared
+      tags:
+        - health-analytics
+        - claims
+        - production
+
+  # Jobs for scheduled runs
+  jobs:
+    daily_claims_refresh:
+      name: "Daily Claims Data Refresh"
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"  # 6 AM daily
+        timezone_id: "America/New_York"
+        pause_status: UNPAUSED
+      
+      tasks:
+        - task_key: refresh_bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.health_claims_bronze.id}
+          
+        - task_key: refresh_silver
+          depends_on:
+            - task_key: refresh_bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.health_claims_silver.id}
+          
+        - task_key: refresh_gold
+          depends_on:
+            - task_key: refresh_silver
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.health_claims_gold.id}
+
+  # Quality monitors for data validation
+  quality_monitors:
+    claims_data_quality:
+      table_name: ${var.catalog_name}.${var.schema_silver}.claims_clean
+      output_schema_name: ${var.catalog_name}.${var.schema_silver}
+      assets_dir: /quality_monitors/claims
+
+# Permissions
+permissions:
+  - level: CAN_READ
+    group_name: users
+  - level: CAN_MANAGE
+    group_name: data-engineers
+
+# Include paths for deployment
+include:
+  - src/**/*.py
+  - notebooks/**/*.ipynb
+  - sql/**/*.sql
