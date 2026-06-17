@@ -1,1 +1,74 @@
+# Smart Health Claims Analytics - Dependencies
+# Last updated: June 2026
+# Python 3.10+ required
 
+# =============================================================================
+# DATABRICKS CORE
+# =============================================================================
+# SDK for Databricks REST API interactions
+databricks-sdk>=0.15.0
+
+# Required for local development with Databricks clusters
+# Note: Version must match your cluster's Spark version
+databricks-connect>=14.0.0
+
+# =============================================================================
+# APACHE SPARK & DELTA LAKE
+# =============================================================================
+# PySpark for distributed data processing
+# Version 3.4+ for iceberg table support
+pyspark>=3.4.0
+
+# Delta Lake for ACID transactions on data lakes
+delta-spark>=2.4.0
+
+# =============================================================================
+# DATA PROCESSING
+# =============================================================================
+# Pandas for smaller datasets and local testing
+pandas>=2.0.0
+
+# Required for efficient data serialization with Spark
+pyarrow>=12.0.0
+
+# =============================================================================
+# DATA QUALITY & VALIDATION
+# =============================================================================
+# Great Expectations for data quality checks
+# Used in Silver layer transformations
+great-expectations>=0.18.0
+
+# =============================================================================
+# VISUALIZATION (Local Development Only)
+# =============================================================================
+# These are only used for local testing/prototyping
+# Not needed when running on Databricks clusters
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# =============================================================================
+# UTILITIES
+# =============================================================================
+# Environment variable management
+python-dotenv>=1.0.0
+
+# YAML parsing for configuration files
+pyyaml>=6.0
+
+# HTTP requests for API calls
+requests>=2.31.0
+
+# =============================================================================
+# TESTING (Development Only)
+# =============================================================================
+# Uncomment if running local tests
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+
+# =============================================================================
+# DOCUMENTATION (Optional)
+# =============================================================================
+# For generating docs locally
+# mkdocs>=1.5.0
+# mkdocs-material>=9.4.0
